@@ -16,7 +16,10 @@
                     </span>
                     <span>Edit</span>
                 </button>
-                <button class="button is-danger is-small">
+                <button
+                    @click="deleteTodo(todo.id)"
+                    class="button is-danger is-small"
+                >
                     <span class="icon is-small">
                         <i class="fa fa-trash-alt"></i>
                     </span>
@@ -36,6 +39,12 @@ const props = defineProps({
     },
 });
 const { priority } = props.todo;
+import { useTodosStore } from "@/store/todosStore";
+/**
+ * Store
+ */
+const store = useTodosStore();
+const { deleteTodo } = store;
 
 // const isExpired = checkIsExpiredDate();
 

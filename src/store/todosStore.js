@@ -1,5 +1,6 @@
 import { reactive } from "vue";
 import { defineStore } from "pinia";
+import { convertDateFormat } from "../utls/convertDateFormat";
 
 const todos = [
     {
@@ -34,5 +35,24 @@ const todos = [
 export const useTodosStore = defineStore("todosStore", () => {
     const todoList = reactive(todos);
 
-    return { todoList };
+    const createNewTodo = (todo) => {
+        // chuyển deadline sang dd-mm-yyyy
+        const deadline = convertDateFormat(todo.deadline);
+        const newTodo = {
+            ...todo,
+            deadline,
+            id: crypto.randomUUID(),
+            completed: false,
+        };
+        todoList.push(newTodo);
+    };
+
+    const deleteTodo = (todoId) => {
+        let index = todoList.findIndex((todo) => todo.id === todoId);
+        if (index !== -1) {
+            todoList.splice(index, 1);
+        }
+    };
+
+    return { todoList, createNewTodo, deleteTodo };
 });

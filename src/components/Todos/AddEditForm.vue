@@ -11,12 +11,75 @@
                 ></button>
             </header>
             <section class="modal-card-body">
-                <DynamicForm :schema="formSchema"> </DynamicForm>
+                <Form
+                    @submit="handleSubmit"
+                    :validation-schema="schema"
+                    class="form-group"
+                >
+                    <div
+                        class="form-control"
+                        v-for="{ name, label, as, ...attrs } in formElements"
+                        :key="name"
+                    >
+                        <label :for="name">{{ label }}</label>
+                        <Field
+                            :name="name"
+                            :as="as"
+                            :class="as"
+                            :id="name"
+                            v-bind="attrs"
+                        />
+                        <ErrorMessage class="error" :name="name" />
+                    </div>
+
+                    <div class="radio-group">
+                        <label>Mức độ ưu tiên</label>
+                        <div class="control">
+                            <label
+                                class="radio"
+                                v-for="{
+                                    as,
+                                    name,
+                                    value,
+                                    label,
+                                    checked,
+                                } in radios"
+                                :key="name"
+                            >
+                                <Field
+                                    :as="as"
+                                    type="radio"
+                                    :name="name"
+                                    :value="value"
+                                />
+                                {{ label }}
+                            </label>
+                        </div>
+                        <ErrorMessage class="error" name="priority" />
+                    </div>
+                    <!-- Ngày hoàn thành -->
+                    <div class="form-control">
+                        <label for="deadline">Ngày hoàn thành</label>
+                        <Field
+                            name="deadline"
+                            as="input"
+                            id="deadline"
+                            type="date"
+                            class="date"
+                        />
+                        <ErrorMessage class="error" name="deadline" />
+                    </div>
+
+                    <div class="buttons mt-3">
+                        <button type="submit" class="button is-success">
+                            Lưu
+                        </button>
+                        <button @click="closeModal()" class="button">
+                            Cancel
+                        </button>
+                    </div>
+                </Form>
             </section>
-            <footer class="modal-card-foot">
-                <button class="button is-success">Save changes</button>
-                <button @click="closeModal()" class="button">Cancel</button>
-            </footer>
         </div>
     </div>
 </template>
@@ -24,9 +87,21 @@
 <script setup>
 // Imports
 import { onClickOutside } from "@vueuse/core";
-import { onMounted, onUnmounted, ref } from "vue";
-import * as Yup from "yup";
-import DynamicForm from "@/components/DynamicForm.vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
+import * as yup from "yup";
+import { Form, Field, ErrorMessage } from "vee-validate";
+import { useTodosStore } from "@/store/todosStore";
+/**
+ * Store
+ */
+
+const store = useTodosStore();
+const { createNewTodo } = store;
+console.log("🚀 ~ createNewTodo:", createNewTodo);
+
+const handleSubmit = (value) => {
+    createNewTodo(value);
+};
 
 const props = defineProps({
     modelValue: {
@@ -35,72 +110,63 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const schema = yup.object({
+    title: yup.string().required("Vui lòng nhập tiêu đề"),
+    description: yup.string().required("Vui lòng nhập mô tả"),
+    priority: yup.string().required("Vui lòng chọn mức độ ưu tiên"),
+    deadline: yup
+        .date()
+        .transform(function (value, originalValue) {
+            if (this.isType(value)) {
+                return value;
+            }
+            const result = parse(originalValue, "dd.MM.yyyy", new Date());
+            return result;
+        })
+        .typeError("error")
+        .required("Vui lòng chọn ngày")
+        .min("2023-08-19", "Thời gian không hợp lệ"),
+});
 
-// :schema="formSchema"
-const formSchema = {
-    fields: [
-        {
-            label: "Tiêu đề(*)",
-            name: "title",
-            as: "input",
-            type: "text",
-            placeholder: "Nhập tiêu đề",
-            rules: Yup.string().trim().required("Vui lòng nhập tiêu đề"),
-        },
-        {
-            label: "Mô tả(*)",
-            name: "description",
-            as: "textarea",
-            placeholder: "Nhập mô tả...",
-            rules: Yup.string().trim().required("Vui lòng nhập mô tả"),
-        },
-        {
-            label: "Mức độ ưu tiên",
-            name: "priority",
-            as: "select",
-            rules: Yup.string().required("Vui lòng chọn mức độ"),
-            children: [
-                {
-                    tag: "option",
-                    value: "high",
-                    text: "Cao",
-                },
-                {
-                    tag: "option",
-                    value: "medium",
-                    text: "Trung bình",
-                },
-                {
-                    tag: "option",
-                    value: "low",
-                    text: "Thấp",
-                },
-            ],
-        },
-        {
-            label: "Ngày hoàn thành(*)",
-            name: "date",
-            as: "input",
-            type: "date",
-            rules: Yup.date()
-                .transform(function (value, originalValue) {
-                    if (this.isType(value)) {
-                        return value;
-                    }
-                    const result = parse(
-                        originalValue,
-                        "MM.dd.yyyy",
-                        new Date()
-                    );
-                    return result;
-                })
-                .typeError("please enter a valid date")
-                .required()
-                .min("2023-08-20", "Thời gian không hợp lệ"),
-        },
-    ],
-};
+const formElements = [
+    {
+        label: "Tiêu đề",
+        name: "title",
+        as: "input",
+        placeholder: `Nhập tiêu đề`,
+    },
+    {
+        label: "Mô tả",
+        name: "description",
+        as: "textarea",
+        placeholder: `Nhập mô tả`,
+    },
+];
+
+const radios = [
+    {
+        as: "input",
+        name: "priority",
+        value: "low",
+        label: "Thấp",
+    },
+
+    {
+        as: "input",
+        name: "priority",
+        value: "medium",
+        label: "Trung bình",
+    },
+    {
+        as: "input",
+        name: "priority",
+        value: "high",
+        label: "Cao",
+        checked: "",
+    },
+];
+
+const emit = defineEmits(["update:modelValue"]);
 
 const closeModal = () => {
     emit("update:modelValue", false);
@@ -115,12 +181,43 @@ const handlePressEsc = (e) => {
         closeModal();
     }
 };
+
 onMounted(() => {
     document.addEventListener("keyup", handlePressEsc);
 });
+
 onUnmounted(() => {
     document.removeEventListener("keyup", handlePressEsc);
 });
 </script>
 
-<style scoped></style>
+<style scoped>
+.form-group,
+.form-control {
+    display: flex;
+    flex-direction: column;
+}
+.form-group {
+    gap: 12px;
+}
+.form-control {
+    gap: 4px;
+}
+.date {
+    height: 40px;
+    padding: 0.2rem 1rem;
+}
+.buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.buttons button {
+    width: 82px;
+}
+.error {
+    color: red;
+}
+</style>

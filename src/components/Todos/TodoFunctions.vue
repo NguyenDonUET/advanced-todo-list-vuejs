@@ -15,7 +15,7 @@
     <AddEditForm v-if="modal.addTodoForm" v-model="modal.addTodoForm">
         <template #title>
             <p class="modal-card-title has-text-weight-bold is-uppercase">
-                Thêm mới công việc
+                Thêm công việc mới
             </p>
         </template>
     </AddEditForm>
