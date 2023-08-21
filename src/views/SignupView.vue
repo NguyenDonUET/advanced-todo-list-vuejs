@@ -8,9 +8,10 @@
             </h1>
             <div class="form-container">
                 <Form
-                    @submit="submit"
+                    @submit="handleSubmit"
                     :validation-schema="simpleSchema"
                     class="form-group"
+                    v-slot="{ errors }"
                 >
                     <div class="form-control">
                         <label for="name"> Tên người dùng </label>
@@ -18,6 +19,7 @@
                             name="userName"
                             id="name"
                             class="input is-primary"
+                            :class="{ 'is-error': errors.userName }"
                             placeholder="Nguyễn Văn A"
                         />
                         <ErrorMessage class="error-message" name="userName" />
@@ -28,6 +30,7 @@
                             name="email"
                             id="email"
                             class="input is-primary"
+                            :class="{ 'is-error': errors.email }"
                             placeholder="example@gmail.com"
                         />
                         <ErrorMessage class="error-message" name="email" />
@@ -37,6 +40,7 @@
                         <Field
                             name="password"
                             class="input is-primary"
+                            :class="{ 'is-error': errors.password }"
                             type="password"
                             id="password"
                             placeholder="Mật khẩu có ít nhất 6 ký tự"
@@ -56,7 +60,7 @@
 <script setup>
 import { Form, Field, ErrorMessage } from "vee-validate";
 import * as yup from "yup";
-
+import { ref } from "vue";
 const simpleSchema = yup.object({
     userName: yup.string().required("Vui lòng nhập tên"),
     email: yup
@@ -68,6 +72,10 @@ const simpleSchema = yup.object({
         .required("Vui lòng nhập mật khẩu")
         .min(6, "Mật khẩu cần dài ít nhất 6 ký tự"),
 });
+
+const handleSubmit = (value) => {
+    console.log(value);
+};
 </script>
 
 <style scoped>
@@ -115,6 +123,9 @@ main {
 }
 .form-control {
     gap: 4px;
+}
+.form-control .is-error {
+    border: 1px solid red;
 }
 .form-control label {
     color: hsla(0, 0%, 0%, 0.6);
