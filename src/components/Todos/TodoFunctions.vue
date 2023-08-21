@@ -12,11 +12,18 @@
         <SearchBar />
         <TodoFilters />
     </div>
-    <AddEditForm v-if="modal.addTodoForm" v-model="modal.addTodoForm">
+    <AddEditForm
+        v-if="modal.addTodoForm"
+        v-model="modal.addTodoForm"
+        :handleFuntion="createNewTodo"
+    >
         <template #title>
             <p class="modal-card-title has-text-weight-bold is-uppercase">
                 Thêm công việc mới
             </p>
+        </template>
+        <template v-slot:btnAdd>
+            <button type="submit" class="button is-success">Thêm</button>
         </template>
     </AddEditForm>
 </template>
@@ -26,10 +33,18 @@ import TodoFilters from "@/components/Todos/TodoFilters.vue";
 import AddEditForm from "@/components/Todos/AddEditForm.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import { ref, reactive } from "vue";
+import { useTodosStore } from "@/store/todosStore";
+
+/**
+ * Store
+ */
+const store = useTodosStore();
+const { createNewTodo } = store;
 
 // modals
 const modal = reactive({
     addTodoForm: false,
+    editTodoForm: false,
 });
 </script>
 

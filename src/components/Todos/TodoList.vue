@@ -24,7 +24,6 @@ import { storeToRefs } from "pinia";
 
 const store = useTodosStore();
 const { todoList } = storeToRefs(store);
-console.log("🚀 ~ todoList:", todoList);
 </script>
 
 <style scoped>

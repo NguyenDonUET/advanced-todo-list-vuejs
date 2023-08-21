@@ -18,7 +18,7 @@ const todos = [
         description:
             "Lorem ipsum dolor sit, amet consectetur adipisicing elit. Numquam veritatis odit dolorem? Lorem ipsum dolor sit amet consectetur, adipisicing elit. hello world...",
         priority: "high",
-        deadline: "10/08/2023",
+        deadline: "31/08/2023",
         completed: false,
     },
     {
@@ -36,7 +36,6 @@ export const useTodosStore = defineStore("todosStore", () => {
     const todoList = reactive(todos);
 
     const createNewTodo = (todo) => {
-        // chuyển deadline sang dd-mm-yyyy
         const deadline = convertDateFormat(todo.deadline);
         const newTodo = {
             ...todo,
@@ -47,6 +46,26 @@ export const useTodosStore = defineStore("todosStore", () => {
         todoList.push(newTodo);
     };
 
+    const updateTodo = (todoId, todoInfo) => {
+        const index = todoList.findIndex((todo) => todo.id === todoId);
+
+        if (index !== -1) {
+            todoList[index] = {
+                id: todoId,
+                ...todoInfo,
+                completed: todoList[index].completed,
+                deadline: convertDateFormat(todoInfo.deadline),
+            };
+        }
+    };
+
+    const toggleTodoStatus = (todoId, completed) => {
+        let todo = todoList.find((todo) => todo.id === todoId);
+        if (todo) {
+            todo.completed = completed;
+        }
+    };
+
     const deleteTodo = (todoId) => {
         let index = todoList.findIndex((todo) => todo.id === todoId);
         if (index !== -1) {
@@ -54,5 +73,11 @@ export const useTodosStore = defineStore("todosStore", () => {
         }
     };
 
-    return { todoList, createNewTodo, deleteTodo };
+    return {
+        todoList,
+        createNewTodo,
+        deleteTodo,
+        updateTodo,
+        toggleTodoStatus,
+    };
 });

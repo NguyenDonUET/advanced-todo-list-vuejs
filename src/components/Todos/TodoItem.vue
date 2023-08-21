@@ -1,8 +1,15 @@
 <template>
-    <div class="todo-item" :class="priority">
+    <div class="todo-item" :class="todo.priority">
         <div class="todo-head">
-            <input type="checkbox" class="checkbox" :checked="todo.completed" />
-            <h3 class="todo-title">{{ todo.title }}</h3>
+            <input
+                type="checkbox"
+                class="checkbox"
+                :checked="todo.completed"
+                @input="onInputChange"
+            />
+            <h3 class="todo-title">
+                {{ todo.title }}
+            </h3>
         </div>
         <div class="todo-body">
             <p>{{ todo.description }}</p>
@@ -10,7 +17,10 @@
         <div class="is-flex mt-4">
             <p class="has-text-weight-bold">HẾT HẠN: {{ todo.deadline }}</p>
             <div class="todo-buttons ml-auto is-flex">
-                <button class="button is-info is-small mr-1">
+                <button
+                    @click="modal.editTodoForm = true"
+                    class="button is-info is-small mr-1"
+                >
                     <span class="icon is-small">
                         <i class="fa fa-edit"></i>
                     </span>
@@ -28,27 +38,60 @@
             </div>
         </div>
     </div>
+    <AddEditForm
+        v-if="modal.editTodoForm"
+        v-model="modal.editTodoForm"
+        :handleFuntion="handleUpdateTodo"
+        :todo="todo"
+    >
+        <template #title>
+            <p class="modal-card-title has-text-weight-bold is-uppercase">
+                Sửa đổi thông tin
+            </p>
+        </template>
+        <template v-slot:btnEdit>
+            <button type="submit" class="button is-success">Lưu</button>
+        </template>
+    </AddEditForm>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, reactive, onMounted } from "vue";
+import AddEditForm from "@/components/Todos/AddEditForm.vue";
+import { useTodosStore } from "@/store/todosStore";
+
 const props = defineProps({
     todo: {
         type: Object,
         required: true,
     },
 });
-const { priority } = props.todo;
-import { useTodosStore } from "@/store/todosStore";
 /**
  * Store
  */
 const store = useTodosStore();
-const { deleteTodo } = store;
+const { deleteTodo, updateTodo, toggleTodoStatus } = store;
 
-// const isExpired = checkIsExpiredDate();
+const handleUpdateTodo = (value) => {
+    updateTodo(props.todo.id, value);
+};
 
-const showDetail = ref(true);
+const isChecked = ref(null);
+
+const onInputChange = (e) => {
+    toggleTodoStatus(props.todo.id, e.target.checked);
+};
+
+// modals
+const modal = reactive({
+    editTodoForm: false,
+});
+
+onMounted(() => {
+    if (props.todo) {
+        isChecked.value = props.todo.completed;
+    }
+});
 </script>
 <style scoped>
 .todo-item {

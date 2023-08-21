@@ -16,20 +16,27 @@
                     :validation-schema="schema"
                     class="form-group"
                 >
-                    <div
-                        class="form-control"
-                        v-for="{ name, label, as, ...attrs } in formElements"
-                        :key="name"
-                    >
-                        <label :for="name">{{ label }}</label>
+                    <div class="form-control">
+                        <label for="title">Tiêu đề</label>
                         <Field
-                            :name="name"
-                            :as="as"
-                            :class="as"
-                            :id="name"
-                            v-bind="attrs"
+                            name="title"
+                            as="input"
+                            class="input"
+                            id="title"
+                            v-model="editedTitle"
                         />
-                        <ErrorMessage class="error" :name="name" />
+                        <ErrorMessage class="error" name="title" />
+                    </div>
+                    <div class="form-control">
+                        <label for="description">Mô tả</label>
+                        <Field
+                            name="description"
+                            as="textarea"
+                            class="textarea"
+                            id="description"
+                            v-model="editedDescription"
+                        />
+                        <ErrorMessage class="error" name="description" />
                     </div>
 
                     <div class="radio-group">
@@ -37,13 +44,7 @@
                         <div class="control">
                             <label
                                 class="radio"
-                                v-for="{
-                                    as,
-                                    name,
-                                    value,
-                                    label,
-                                    checked,
-                                } in radios"
+                                v-for="{ as, name, value, label } in radios"
                                 :key="name"
                             >
                                 <Field
@@ -51,6 +52,7 @@
                                     type="radio"
                                     :name="name"
                                     :value="value"
+                                    v-model="selectedPriority"
                                 />
                                 {{ label }}
                             </label>
@@ -66,14 +68,14 @@
                             id="deadline"
                             type="date"
                             class="date"
+                            v-model="selectedDeadline"
                         />
                         <ErrorMessage class="error" name="deadline" />
                     </div>
 
                     <div class="buttons mt-3">
-                        <button type="submit" class="button is-success">
-                            Lưu
-                        </button>
+                        <slot name="btnAdd" />
+                        <slot name="btnEdit" />
                         <button @click="closeModal()" class="button">
                             Cancel
                         </button>
@@ -90,25 +92,32 @@ import { onClickOutside } from "@vueuse/core";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import * as yup from "yup";
 import { Form, Field, ErrorMessage } from "vee-validate";
-import { useTodosStore } from "@/store/todosStore";
-/**
- * Store
- */
-
-const store = useTodosStore();
-const { createNewTodo } = store;
-console.log("🚀 ~ createNewTodo:", createNewTodo);
-
-const handleSubmit = (value) => {
-    createNewTodo(value);
-};
+import { convertDateToISOFormat } from "@/utls/convertDateFormat";
 
 const props = defineProps({
     modelValue: {
         type: Boolean,
         default: false,
     },
+    handleFuntion: {
+        type: Function,
+        required: true,
+    },
+    todo: {
+        type: Object,
+        required: false,
+    },
 });
+
+const handleSubmit = (value) => {
+    props.handleFuntion(value);
+    closeModal();
+};
+
+const selectedDeadline = ref("");
+const selectedPriority = ref("");
+const editedTitle = ref("");
+const editedDescription = ref("");
 
 const schema = yup.object({
     title: yup.string().required("Vui lòng nhập tiêu đề"),
@@ -120,28 +129,13 @@ const schema = yup.object({
             if (this.isType(value)) {
                 return value;
             }
-            const result = parse(originalValue, "dd.MM.yyyy", new Date());
+            const result = (originalValue, "dd.MM.yyyy", new Date());
             return result;
         })
         .typeError("error")
         .required("Vui lòng chọn ngày")
         .min("2023-08-19", "Thời gian không hợp lệ"),
 });
-
-const formElements = [
-    {
-        label: "Tiêu đề",
-        name: "title",
-        as: "input",
-        placeholder: `Nhập tiêu đề`,
-    },
-    {
-        label: "Mô tả",
-        name: "description",
-        as: "textarea",
-        placeholder: `Nhập mô tả`,
-    },
-];
 
 const radios = [
     {
@@ -184,6 +178,14 @@ const handlePressEsc = (e) => {
 
 onMounted(() => {
     document.addEventListener("keyup", handlePressEsc);
+    if (props.todo) {
+        const { deadline, priority, title, description } = props.todo;
+        const formatedDate = convertDateToISOFormat(deadline);
+        selectedPriority.value = priority;
+        selectedDeadline.value = formatedDate;
+        editedTitle.value = title;
+        editedDescription.value = description;
+    }
 });
 
 onUnmounted(() => {

@@ -35,10 +35,15 @@
                 <div class="navbar-end">
                     <div class="navbar-item">
                         <div class="buttons">
-                            <a class="button is-primary">
+                            <RouterLink
+                                to="/register"
+                                class="button is-primary"
+                            >
                                 <strong>Đăng ký</strong>
-                            </a>
-                            <a class="button is-light"> Đăng nhập </a>
+                            </RouterLink>
+                            <RouterLink to="/login" class="button is-light">
+                                Đăng nhập
+                            </RouterLink>
                         </div>
                     </div>
                 </div>
