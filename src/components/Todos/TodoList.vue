@@ -1,15 +1,19 @@
 <template>
     <div class="wrapper my-5 px-2">
-        <div class="empty-list-notification" v-if="todoList.length <= 0">
+        <div
+            class="empty-list-notification"
+            v-if="!isLoading && visibleTodos.length <= 0"
+        >
             <figure class="image">
                 <img src="/images/empty-list-img.png" />
             </figure>
-            <p class="is-size-4 mt-4 has-text-centered">Danh sách đang trống</p>
+            <p class="is-size-4 mt-4 has-text-centered">Danh sách trống</p>
         </div>
-        <div class="todo-list is-3">
-            <TodoItem v-for="todo in todoList" :key="todo.id" :todo="todo">
+        <div v-if="!isLoading" class="todo-list is-3">
+            <TodoItem v-for="todo in visibleTodos" :key="todo.id" :todo="todo">
             </TodoItem>
         </div>
+        <h1 v-if="isLoading" class="is-size-2">Đang tải...</h1>
     </div>
 </template>
 
@@ -17,13 +21,22 @@
 import TodoItem from "@/components/Todos/TodoItem.vue";
 import { useTodosStore } from "@/store/todosStore";
 import { storeToRefs } from "pinia";
+import { db } from "@/firebase/firebase";
+import { onMounted, ref, reactive } from "vue";
+import { collection, getDocs, onSnapshot } from "firebase/firestore";
 
 /**
  * Store
  */
 
 const store = useTodosStore();
-const { todoList } = storeToRefs(store);
+const { visibleTodos } = storeToRefs(store);
+const { isLoading } = storeToRefs(store);
+const { getTodosFromDB } = store;
+
+onMounted(() => {
+    getTodosFromDB();
+});
 </script>
 
 <style scoped>

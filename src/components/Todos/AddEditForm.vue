@@ -24,6 +24,7 @@
                             class="input"
                             id="title"
                             v-model="editedTitle"
+                            v-autofocus
                         />
                         <ErrorMessage class="error" name="title" />
                     </div>
@@ -92,7 +93,8 @@ import { onClickOutside } from "@vueuse/core";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import * as yup from "yup";
 import { Form, Field, ErrorMessage } from "vee-validate";
-import { convertDateToISOFormat } from "@/utls/convertDateFormat";
+import { convertDateToISOFormat } from "@/utils/convertDateFormat";
+import { vAutofocus } from "@/directives/vAutofocus.js";
 
 const props = defineProps({
     modelValue: {
@@ -110,6 +112,10 @@ const props = defineProps({
 });
 
 const handleSubmit = (value) => {
+    const { title, description, priority, deadline } = value;
+    if (!title || !deadline || !description || !priority) {
+        return;
+    }
     props.handleFuntion(value);
     closeModal();
 };

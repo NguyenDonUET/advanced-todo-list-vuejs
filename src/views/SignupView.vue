@@ -8,7 +8,7 @@
             </h1>
             <div class="form-container">
                 <Form
-                    @submit="handleSubmit"
+                    @submit="handleSignup"
                     :validation-schema="simpleSchema"
                     class="form-group"
                     v-slot="{ errors }"
@@ -52,6 +52,10 @@
                         Đăng ký
                     </button>
                 </Form>
+                <p class="has-text-centered mt-4">
+                    Đã có tài khoản?
+                    <RouterLink to="/login"> Đăng nhập</RouterLink>
+                </p>
             </div>
         </div>
     </main>
@@ -60,7 +64,16 @@
 <script setup>
 import { Form, Field, ErrorMessage } from "vee-validate";
 import * as yup from "yup";
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import { auth } from "@/firebase/firebase.js";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { useRouter } from "vue-router";
+
+/**
+ * Router
+ */
+const router = useRouter();
+
 const simpleSchema = yup.object({
     userName: yup.string().required("Vui lòng nhập tên"),
     email: yup
@@ -73,9 +86,27 @@ const simpleSchema = yup.object({
         .min(6, "Mật khẩu cần dài ít nhất 6 ký tự"),
 });
 
-const handleSubmit = (value) => {
-    console.log(value);
+const handleSignup = (value) => {
+    const { email, password, userName } = value;
+    createUserWithEmailAndPassword(auth, email, password)
+        .then(() => {
+            updateProfile(auth.currentUser, {
+                displayName: userName,
+            }).then(() => {
+                const user = auth.currentUser;
+                console.log("Signup success", user);
+                router.push("/login");
+            });
+        })
+        .catch((error) => console.log(error.message));
 };
+
+onMounted(() => {
+    const token = localStorage.getItem("TOKEN");
+    if (token) {
+        router.push("/");
+    }
+});
 </script>
 
 <style scoped>

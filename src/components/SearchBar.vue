@@ -3,7 +3,7 @@
         <p class="control has-icons-left has-icons-right">
             <input
                 class="input is-primary"
-                v-model="searchVal"
+                v-model="title"
                 type="text"
                 placeholder="Nhập tên "
             />
@@ -20,11 +20,18 @@
 
 <script setup>
 import { ref } from "vue";
+import { useTodosStore } from "@/store/todosStore";
+import { storeToRefs } from "pinia";
 
-const searchVal = ref("");
+/**
+ * Store
+ */
+const store = useTodosStore();
+const { title } = storeToRefs(store);
+const { filterTodosByTitle } = store;
 
 const handleSearch = () => {
-    console.log("🚀 ~ searchVal:", searchVal.value);
+    filterTodosByTitle(title.value.trim());
 };
 </script>
 

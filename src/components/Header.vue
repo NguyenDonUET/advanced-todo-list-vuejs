@@ -25,15 +25,13 @@
                 id="header-navbar"
                 :class="[{ 'is-active': showMobileNav }, 'navbar-menu']"
             >
-                <div class="navbar-start">
-                    <!-- Khi đã login in mới hiện -->
-                    <!-- <a class="navbar-item"> Trang chủ </a>
-
-                    <a class="navbar-item"> Thống kê </a> -->
-                </div>
+                <div class="navbar-start"></div>
 
                 <div class="navbar-end">
-                    <div class="navbar-item">
+                    <pre>{{ isLoggedIn ? "True" : "false" }} </pre>
+
+                    <!-- Khi chưa login in -->
+                    <div class="navbar-item" v-if="!isLoggedIn">
                         <div class="buttons">
                             <RouterLink
                                 to="/register"
@@ -46,6 +44,26 @@
                             </RouterLink>
                         </div>
                     </div>
+                    <!-- Khi đã login in mới hiện -->
+                    <div
+                        v-if="isLoggedIn"
+                        class="navbar-item has-dropdown"
+                        :class="{ 'is-hoverable': true }"
+                    >
+                        <p class="navbar-link">
+                            {{ user.displayName }}
+                        </p>
+                        <div class="navbar-dropdown">
+                            <p class="navbar-item">{{ user.email }}</p>
+                            <hr class="navbar-divider" />
+                            <RouterLink
+                                @click="handleLogout"
+                                to="/login"
+                                class="navbar-item"
+                                >Đăng xuất</RouterLink
+                            >
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -53,9 +71,50 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import { storeToRefs } from "pinia";
+import { useRouter } from "vue-router";
+import { auth } from "../firebase/firebase";
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { useTodosStore } from "@/store/todosStore";
+/**
+ * Store
+ */
+const store = useTodosStore();
+const { user, isLoggedIn } = storeToRefs(store);
+const { logout, initialUser } = store;
 
+const router = useRouter();
 const showMobileNav = ref(false);
+
+const handleLogout = () => {
+    signOut(auth)
+        .then(() => {
+            logout();
+        })
+        .catch((error) => console.log(error.message));
+};
+
+// nếu đã login
+onMounted(() => {
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            initialUser(user);
+        } else {
+            router.push("/login");
+        }
+    });
+});
+
+// onMounted(() => {
+//     onAuthStateChanged(auth, (user) => {
+//         if (user) {
+//             isLoggedIn.value = true;
+//         } else {
+//             isLoggedIn.value = false;
+//         }
+//     });
+// });
 </script>
 
 <style scoped>
