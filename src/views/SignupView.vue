@@ -21,6 +21,7 @@
                             class="input is-primary"
                             :class="{ 'is-error': errors.userName }"
                             placeholder="Nguyễn Văn A"
+                            v-autofocus
                         />
                         <ErrorMessage class="error-message" name="userName" />
                     </div>
@@ -68,6 +69,7 @@ import { ref, onMounted } from "vue";
 import { auth } from "@/firebase/firebase.js";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useRouter } from "vue-router";
+import { vAutofocus } from "@/directives/vAutofocus.js";
 
 /**
  * Router

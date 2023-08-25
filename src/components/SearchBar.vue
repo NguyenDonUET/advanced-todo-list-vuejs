@@ -4,7 +4,7 @@
             <input
                 class="input is-primary"
                 v-model="title"
-                type="text"
+                type="search"
                 placeholder="Nhập tên "
             />
             <span class="icon is-small is-left">
@@ -35,4 +35,8 @@ const handleSearch = () => {
 };
 </script>
 
-<style lang="scss" scoped></style>
+<style scoped>
+.control .input {
+    padding-right: 8px;
+}
+</style>

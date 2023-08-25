@@ -21,6 +21,7 @@
                             class="input is-primary"
                             :class="{ 'is-error': errors.email }"
                             placeholder="example@gmail.com"
+                            v-autofocus
                         />
                         <ErrorMessage class="error-message" name="email" />
                     </div>
@@ -54,6 +55,8 @@
 import { auth } from "@/firebase/firebase.js";
 import { useTodosStore } from "@/store/todosStore";
 import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { vAutofocus } from "@/directives/vAutofocus.js";
+
 import { ErrorMessage, Field, Form } from "vee-validate";
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";

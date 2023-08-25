@@ -28,7 +28,7 @@
                 <div class="navbar-start"></div>
 
                 <div class="navbar-end">
-                    <pre>{{ isLoggedIn ? "True" : "false" }} </pre>
+                    <!-- <pre>{{ isLoggedIn ? "True" : "false" }} </pre> -->
 
                     <!-- Khi chưa login in -->
                     <div class="navbar-item" v-if="!isLoggedIn">
