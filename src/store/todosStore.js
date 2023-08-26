@@ -1,10 +1,20 @@
 import { db } from "@/firebase/firebase";
-import { set, ref as refDB, onValue, remove, update } from "firebase/database";
-import { collection, orderBy, query } from "firebase/firestore";
+import {
+    set,
+    ref as refDB,
+    onValue,
+    remove,
+    update,
+    query,
+    limitToFirst,
+    startAt,
+    orderByChild,
+} from "firebase/database";
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { convertDateFormat } from "../utils/convertDateFormat";
-import { checkIsLoggedIn } from "../utils/checkIsLoggedIn";
+import { sortByDeadlineAscending } from "../utils/sortByDeadlineAscending";
+
 import {
     createUserWithEmailAndPassword,
     onAuthStateChanged,
@@ -35,6 +45,9 @@ export const useTodosStore = defineStore("todosStore", () => {
     const priority = ref("");
     const title = ref("");
     const status = ref("");
+
+    const currentPage = ref(1);
+    const router = useRouter();
 
     // khi đăng nhập xong update user
     const login = (userAuth) => {
@@ -76,7 +89,6 @@ export const useTodosStore = defineStore("todosStore", () => {
         console.log("email", user.email);
     };
 
-    const router = useRouter();
     const logout = () => {
         console.log("logout ~ store");
         signOut(auth)
@@ -274,7 +286,7 @@ export const useTodosStore = defineStore("todosStore", () => {
         }
     };
 
-    async function getTodosFromDB(query) {
+    const getTodosFromDB = () => {
         isLoading.value = true;
         console.log("get data");
 
@@ -287,7 +299,7 @@ export const useTodosStore = defineStore("todosStore", () => {
                     //     sau khi có user
                     const modifiedEmail = user.email.replace(".", ",");
 
-                    const todosRef = refDB(db, `todos/${modifiedEmail}`);
+                    const todosRef = query(refDB(db, `todos/${modifiedEmail}`));
                     onValue(todosRef, (snapshot) => {
                         const data = snapshot.val();
                         isLoading.value = false;
@@ -298,6 +310,7 @@ export const useTodosStore = defineStore("todosStore", () => {
                                 todos.push(data[key]);
                             }
                         }
+                        sortByDeadlineAscending(todos);
                         visibleTodos.value = todos;
                         todoList.value = todos;
                     });
@@ -311,7 +324,7 @@ export const useTodosStore = defineStore("todosStore", () => {
             isLoading.value = false;
             alert("Error getting todos from database", error.message);
         }
-    }
+    };
 
     return {
         visibleTodos,

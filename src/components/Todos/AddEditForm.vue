@@ -94,6 +94,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import * as yup from "yup";
 import { Form, Field, ErrorMessage } from "vee-validate";
 import { convertDateToISOFormat } from "@/utils/convertDateFormat";
+import { getCurrentDate } from "@/utils/getCurrentDate";
 import { vAutofocus } from "@/directives/vAutofocus.js";
 
 const props = defineProps({
@@ -140,7 +141,7 @@ const schema = yup.object({
         })
         .typeError("error")
         .required("Vui lòng chọn ngày")
-        .min(new Date(), "Thời gian không hợp lệ"),
+        .min(getCurrentDate(), "Thời gian không hợp lệ"),
 });
 
 const radios = [

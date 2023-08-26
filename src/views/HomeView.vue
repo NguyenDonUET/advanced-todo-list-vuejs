@@ -4,13 +4,11 @@
         <TodoFunctions />
         <TodoList />
     </main>
-    <Pagination />
 </template>
 
 <script setup>
 import TodoList from "@/components/Todos/TodoList.vue";
 import TodoFunctions from "@/components/Todos/TodoFunctions.vue";
-import Pagination from "@/components/Pagination.vue";
 import Title from "@/components/Title.vue";
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
@@ -30,6 +28,6 @@ const router = useRouter();
 
 <style scoped>
 main {
-    min-height: 68%;
+    min-height: 100%;
 }
 </style>
