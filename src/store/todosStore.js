@@ -97,6 +97,7 @@ export const useTodosStore = defineStore("todosStore", () => {
         try {
             set(todosRef, newTodo);
             console.log("add todo");
+            title.value = "";
         } catch (error) {
             console.log(error);
         }
@@ -130,6 +131,8 @@ export const useTodosStore = defineStore("todosStore", () => {
                               }
                             : todo
                     );
+                    title.value = "";
+
                     console.log("update success");
                 })
                 .catch((error) => {
@@ -204,11 +207,11 @@ export const useTodosStore = defineStore("todosStore", () => {
             filterTodosByPriority();
             filterTodosByStatus();
             visibleTodos.value = visibleTodos.value.filter((todo) =>
-                todo.title.includes(title.value)
+                todo.title.toLowerCase().includes(title.value.toLowerCase())
             );
         } else {
             visibleTodos.value = todoList.value.filter((todo) =>
-                todo.title.includes(title.value)
+                todo.title.toLowerCase().includes(title.value.toLowerCase())
             );
         }
     };
@@ -219,14 +222,14 @@ export const useTodosStore = defineStore("todosStore", () => {
             visibleTodos.value = todoList.value.filter(
                 (todo) =>
                     todo.priority.includes(priority.value) &&
-                    todo.title.includes(title.value)
+                    todo.title.toLowerCase().includes(title.value.toLowerCase())
             );
         } else {
             visibleTodos.value = todoList.value.filter(
                 (todo) =>
                     todo.completed === JSON.parse(status.value) &&
                     todo.priority.includes(priority.value) &&
-                    todo.title.includes(title.value)
+                    todo.title.toLowerCase().includes(title.value.toLowerCase())
             );
         }
     };
@@ -239,7 +242,9 @@ export const useTodosStore = defineStore("todosStore", () => {
                 visibleTodos.value = todoList.value.filter(
                     (todo) =>
                         todo.completed === JSON.parse(status.value) &&
-                        todo.title.includes(title.value)
+                        todo.title
+                            .toLowerCase()
+                            .includes(title.value.toLowerCase())
                 );
         } else {
             console.log(status.value);
@@ -247,14 +252,18 @@ export const useTodosStore = defineStore("todosStore", () => {
                 visibleTodos.value = todoList.value.filter(
                     (todo) =>
                         todo.priority.includes(priority.value) &&
-                        todo.title.includes(title.value)
+                        todo.title
+                            .toLowerCase()
+                            .includes(title.value.toLowerCase())
                 );
             } else
                 visibleTodos.value = todoList.value.filter(
                     (todo) =>
                         todo.priority.includes(priority.value) &&
                         todo.completed === JSON.parse(status.value) &&
-                        todo.title.includes(title.value)
+                        todo.title
+                            .toLowerCase()
+                            .includes(title.value.toLowerCase())
                 );
         }
     };

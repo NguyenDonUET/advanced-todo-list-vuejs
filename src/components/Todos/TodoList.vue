@@ -13,7 +13,9 @@
             <TodoItem v-for="todo in visibleTodos" :key="todo.id" :todo="todo">
             </TodoItem>
         </div>
-        <h1 v-if="isLoading" class="is-size-2">Đang tải...</h1>
+        <Teleport to="#loading-container">
+            <Loading v-if="isLoading" />
+        </Teleport>
     </div>
 </template>
 
