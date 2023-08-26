@@ -70,6 +70,14 @@ import { auth } from "@/firebase/firebase.js";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useRouter } from "vue-router";
 import { vAutofocus } from "@/directives/vAutofocus.js";
+import { useTodosStore } from "@/store/todosStore";
+
+/**
+ * Store
+ */
+
+const store = useTodosStore();
+const { signUp } = store;
 
 /**
  * Router
@@ -90,17 +98,8 @@ const simpleSchema = yup.object({
 
 const handleSignup = (value) => {
     const { email, password, userName } = value;
-    createUserWithEmailAndPassword(auth, email, password)
-        .then(() => {
-            updateProfile(auth.currentUser, {
-                displayName: userName,
-            }).then(() => {
-                const user = auth.currentUser;
-                console.log("Signup success", user);
-                router.push("/login");
-            });
-        })
-        .catch((error) => console.log(error.message));
+    signUp(userName, email, password);
+    router.push("/login");
 };
 
 onMounted(() => {

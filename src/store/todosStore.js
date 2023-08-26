@@ -1,20 +1,17 @@
 import { db } from "@/firebase/firebase";
-import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    updateDoc,
-    where,
-} from "firebase/firestore";
+import { set, ref as refDB, onValue, remove } from "firebase/database";
+import { collection, orderBy, query } from "firebase/firestore";
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { convertDateFormat } from "../utils/convertDateFormat";
-
+import { checkIsLoggedIn } from "../utils/checkIsLoggedIn";
+import {
+    createUserWithEmailAndPassword,
+    onAuthStateChanged,
+    updateProfile,
+} from "firebase/auth";
+import { auth } from "../firebase/firebase";
+import { useRouter } from "vue-router";
 const todos = [
     {
         id: 1,
@@ -38,12 +35,6 @@ export const useTodosStore = defineStore("todosStore", () => {
     const title = ref("");
     const status = ref("");
 
-    const todosCollectionRef = collection(db, "todos");
-    const todosCollectionQuery = query(
-        todosCollectionRef,
-        orderBy("date", "desc")
-    );
-
     // khi đăng nhập xong update user
     const login = (userAuth) => {
         user.displayName = userAuth.displayName;
@@ -51,11 +42,40 @@ export const useTodosStore = defineStore("todosStore", () => {
         isLoggedIn.value = true;
     };
 
-    // Khi user đã login
-    const initialUser = (userInfo) => {
-        isLoggedIn.value = true;
-        user.displayName = userInfo.displayName;
-        user.email = userInfo.email;
+    const signUp = (userName, email, password) => {
+        createUserWithEmailAndPassword(auth, email, password)
+            .then(() => {
+                updateProfile(auth.currentUser, {
+                    displayName: userName,
+                }).then(() => {
+                    const user = auth.currentUser;
+                    // thêm account vào realtime
+                    const modifiedEmail = user.email.replace(".", ",");
+                    const todosRef = refDB(db, `todos/${modifiedEmail}/`);
+                    try {
+                        set(todosRef, { null: "" });
+                        console.log("add user account to realtime");
+                    } catch (error) {
+                        console.log(error);
+                    }
+                    console.log("Signup success", user);
+                });
+            })
+            .catch((error) => console.log(error.message));
+    };
+
+    // Khi refresh lại trang nếu user đã login thì update state user
+    const initialUser = () => {
+        onAuthStateChanged(auth, (userInfo) => {
+            if (userInfo) {
+                isLoggedIn.value = true;
+                user.email = userInfo.email;
+                user.displayName = userInfo.displayName;
+                console.log("email", user.email);
+            } else {
+                console.log("chưa login");
+            }
+        });
     };
 
     const logout = () => {
@@ -70,10 +90,13 @@ export const useTodosStore = defineStore("todosStore", () => {
             deadline,
             completed: false,
             date: Date.now(),
+            id: crypto.randomUUID(),
         };
+        const modifiedEmail = user.email.replace(".", ",");
+        const todosRef = refDB(db, `todos/${modifiedEmail}/${newTodo.id}`);
         try {
-            const docRef = await addDoc(todosCollectionRef, newTodo);
-            console.log("thêm success", docRef.id);
+            set(todosRef, newTodo);
+            console.log("add todo");
         } catch (error) {
             console.log(error);
         }
@@ -85,11 +108,7 @@ export const useTodosStore = defineStore("todosStore", () => {
             return;
         }
         try {
-            await updateDoc(doc(todosCollectionRef, todoId), {
-                ...todoInfo,
-                completed: todo.completed,
-                deadline: convertDateFormat(todoInfo.deadline),
-            });
+            console.log("update");
         } catch (error) {
             console.log(error);
         }
@@ -101,10 +120,6 @@ export const useTodosStore = defineStore("todosStore", () => {
             return;
         }
         try {
-            await updateDoc(doc(todosCollectionRef, todoId), {
-                ...todo,
-                completed,
-            });
         } catch (error) {
             console.log(error);
         }
@@ -112,8 +127,20 @@ export const useTodosStore = defineStore("todosStore", () => {
 
     const deleteTodo = (todoId) => {
         let index = todoList.value.findIndex((todo) => todo.id === todoId);
+        const modifiedEmail = user.email.replace(".", ",");
+        const todosRef = refDB(db, `todos/${modifiedEmail}/${todoId}`);
+
         if (index !== -1) {
-            deleteDoc(doc(todosCollectionRef, todoId));
+            // xóa trong db
+            remove(todosRef)
+                .then(() => {
+                    console.log("remove todo");
+                    // xóa trên UI
+                    visibleTodos.value = visibleTodos.value.filter(
+                        (todo) => todo.id !== todoId
+                    );
+                })
+                .catch((error) => console.log(error.message));
         }
     };
 
@@ -177,23 +204,40 @@ export const useTodosStore = defineStore("todosStore", () => {
         }
     };
 
-    function getTodosFromDB(query = todosCollectionQuery) {
+    async function getTodosFromDB(query) {
         isLoading.value = true;
+        console.log("get data");
+
         try {
-            onSnapshot(query, (querySnapshot) => {
-                let todos = [];
-                querySnapshot.forEach((doc) => {
-                    todos.push({
-                        id: doc.id,
-                        ...doc.data(),
+            onAuthStateChanged(auth, (userInfo) => {
+                if (userInfo) {
+                    isLoggedIn.value = true;
+                    user.email = userInfo.email;
+                    user.displayName = userInfo.displayName;
+                    //     sau khi có user
+                    const modifiedEmail = user.email.replace(".", ",");
+
+                    const todosRef = refDB(db, `todos/${modifiedEmail}`);
+                    onValue(todosRef, (snapshot) => {
+                        const data = snapshot.val();
+                        isLoading.value = false;
+                        let todos = [];
+                        for (const key of Object.keys(data)) {
+                            // update visibleTodo và todoList
+                            if (key !== "null") {
+                                todos.push(data[key]);
+                            }
+                        }
+                        visibleTodos.value = todos;
+                        todoList.value = todos;
                     });
-                });
-                todoList.value = todos;
-                visibleTodos.value = todos;
-                isLoading.value = false;
+                } else {
+                    isLoading.value = false;
+                    console.log("user chưa login");
+                }
             });
         } catch (error) {
-            console.log(error);
+            console.log(error.message);
             isLoading.value = false;
             alert("Error getting todos from database", error.message);
         }
@@ -218,5 +262,6 @@ export const useTodosStore = defineStore("todosStore", () => {
         priority,
         status,
         title,
+        signUp,
     };
 });
