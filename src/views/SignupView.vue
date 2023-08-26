@@ -116,7 +116,8 @@ main {
 }
 
 .form-container {
-    min-width: 360px;
+    min-width: 320px;
+    padding: 0 12px;
 }
 
 @media screen and (min-width: 768px) {
