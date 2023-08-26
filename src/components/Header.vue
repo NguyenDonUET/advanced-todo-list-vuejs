@@ -96,16 +96,7 @@ onMounted(() => {
     const userLocal = JSON.parse(localStorage.getItem("USER"));
     if (userLocal) {
         initialUser(userLocal);
-    } else {
-        logout();
     }
-    // onAuthStateChanged(auth, (user) => {
-    //     if (user) {
-    //         initialUser(user);
-    //     } else {
-    //         router.push("/login");
-    //     }
-    // });
 });
 </script>
 

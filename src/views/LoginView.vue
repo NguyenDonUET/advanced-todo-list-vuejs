@@ -84,28 +84,7 @@ const simpleSchema = yup.object({
 
 const handleLogin = (value) => {
     const { email, password } = value;
-
-    signInWithEmailAndPassword(auth, email, password)
-        .then((credential) => {
-            login(credential.user);
-            router.push("/");
-        })
-        .catch((error) => {
-            switch (error.code) {
-                case "auth/invalid-email":
-                    alert("Email không hợp lệ.");
-                    break;
-                case "auth/user-not-found":
-                    alert("Email không tồn tại.");
-                    break;
-                case "auth/wrong-password":
-                    alert("Mật khẩu không chính xác.");
-                    break;
-                default:
-                    console.log(error.message);
-                    alert("Đã xảy ra lỗi. Vui lòng thử lại sau.");
-            }
-        });
+    login(email, password);
 };
 
 onMounted(() => {

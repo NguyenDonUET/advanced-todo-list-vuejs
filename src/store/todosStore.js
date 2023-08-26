@@ -1,14 +1,11 @@
 import { db } from "@/firebase/firebase";
 import {
-    set,
-    ref as refDB,
     onValue,
-    remove,
-    update,
     query,
-    limitToFirst,
-    startAt,
-    orderByChild,
+    ref as refDB,
+    remove,
+    set,
+    update,
 } from "firebase/database";
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
@@ -18,11 +15,14 @@ import { sortByDeadlineAscending } from "../utils/sortByDeadlineAscending";
 import {
     createUserWithEmailAndPassword,
     onAuthStateChanged,
+    signInWithEmailAndPassword,
     signOut,
     updateProfile,
 } from "firebase/auth";
-import { auth } from "../firebase/firebase";
 import { useRouter } from "vue-router";
+import { POSITION, useToast } from "vue-toastification";
+import { auth } from "../firebase/firebase";
+
 const todos = [
     {
         id: 1,
@@ -35,6 +35,10 @@ const todos = [
     },
 ];
 
+const CRUD_TOAST_OPTIONS = {
+    position: POSITION.TOP_RIGHT,
+};
+
 export const useTodosStore = defineStore("todosStore", () => {
     const user = reactive({});
     const isLoggedIn = ref(false);
@@ -46,16 +50,39 @@ export const useTodosStore = defineStore("todosStore", () => {
     const title = ref("");
     const status = ref("");
 
-    const currentPage = ref(1);
     const router = useRouter();
+    const toast = useToast();
 
     // khi đăng nhập xong update user
-    const login = (userAuth) => {
-        user.displayName = userAuth.displayName;
-        user.email = userAuth.email;
-        isLoggedIn.value = true;
-        localStorage.setItem("ACCESS_TOKEN", userAuth.accessToken);
-        localStorage.setItem("USER", JSON.stringify(user));
+    const login = (email, password) => {
+        signInWithEmailAndPassword(auth, email, password)
+            .then((credential) => {
+                const userAuth = credential.user;
+                user.displayName = userAuth.displayName;
+                user.email = userAuth.email;
+                isLoggedIn.value = true;
+                localStorage.setItem("ACCESS_TOKEN", userAuth.accessToken);
+                localStorage.setItem("USER", JSON.stringify(user));
+
+                toast.success("Đăng nhập thành công");
+                router.push("/");
+            })
+            .catch((error) => {
+                switch (error.code) {
+                    case "auth/invalid-email":
+                        toast.error("Email không hợp lệ.");
+                        break;
+                    case "auth/user-not-found":
+                        toast.error("Email không tồn tại.");
+                        break;
+                    case "auth/wrong-password":
+                        toast.error("Mật khẩu không chính xác.");
+                        break;
+                    default:
+                        console.log(error.message);
+                        toast.error("Đã xảy ra lỗi. Vui lòng thử lại sau.");
+                }
+            });
     };
 
     const signUp = (userName, email, password) => {
@@ -68,16 +95,29 @@ export const useTodosStore = defineStore("todosStore", () => {
                     // thêm account vào realtime
                     const modifiedEmail = user.email.replace(".", ",");
                     const todosRef = refDB(db, `todos/${modifiedEmail}/`);
-                    try {
-                        set(todosRef, { null: "" });
-                        console.log("add user account to realtime");
-                    } catch (error) {
-                        console.log(error);
-                    }
-                    console.log("Signup success", user);
+
+                    set(todosRef, { null: "" })
+                        .then(() => {
+                            toast.success("Đăng ký thành công", {
+                                position: POSITION.TOP_CENTER,
+                            });
+                            console.log("Signup success", user);
+                            router.push("/login");
+                        })
+                        .catch((error) => {
+                            toast.error("Update displayName bị lỗi");
+                            console.log(error);
+                        });
                 });
             })
-            .catch((error) => console.log(error.message));
+            .catch((error) => {
+                if (error.code === "auth/email-already-in-use") {
+                    toast.error("Email này đã tồn tại");
+                } else {
+                    toast.error(error.code);
+                }
+                console.log(error);
+            });
     };
 
     // Khi refresh lại trang nếu user đã login thì update state user
@@ -96,6 +136,9 @@ export const useTodosStore = defineStore("todosStore", () => {
                 isLoggedIn.value = false;
                 localStorage.removeItem("ACCESS_TOKEN");
                 localStorage.removeItem("USER");
+                toast.success("Đăng xuất", {
+                    timeout: 1000,
+                });
                 router.push("/login");
             })
             .catch((error) => console.log(error.message));
@@ -112,13 +155,17 @@ export const useTodosStore = defineStore("todosStore", () => {
         };
         const modifiedEmail = user.email.replace(".", ",");
         const todosRef = refDB(db, `todos/${modifiedEmail}/${newTodo.id}`);
-        try {
-            set(todosRef, newTodo);
-            console.log("add todo");
-            title.value = "";
-        } catch (error) {
-            console.log(error);
-        }
+
+        set(todosRef, newTodo)
+            .then(() => {
+                console.log("add todo");
+                toast.success("Thêm thành công", CRUD_TOAST_OPTIONS);
+            })
+            .catch((error) => {
+                console.log(error.message);
+                toast.error("Thêm thất bại", CRUD_TOAST_OPTIONS);
+            });
+        title.value = "";
     };
 
     const updateTodo = async (todoId, todoInfo) => {
@@ -129,36 +176,34 @@ export const useTodosStore = defineStore("todosStore", () => {
         todoInfo.deadline = convertDateFormat(todoInfo.deadline);
         const modifiedEmail = user.email.replace(".", ",");
         const todosRef = refDB(db, `todos/${modifiedEmail}/${todoId}`);
-        try {
-            update(todosRef, todoInfo)
-                .then(() => {
-                    // update local todos
-                    visibleTodos.value = visibleTodos.value.map((todo) =>
-                        todo.id === todoId
-                            ? {
-                                  id: todoId,
-                                  ...todoInfo,
-                              }
-                            : todo
-                    );
-                    todoList.value = todoList.value.map((todo) =>
-                        todo.id === todoId
-                            ? {
-                                  id: todoId,
-                                  ...todoInfo,
-                              }
-                            : todo
-                    );
-                    title.value = "";
+        update(todosRef, todoInfo)
+            .then(() => {
+                // update local todos
+                visibleTodos.value = visibleTodos.value.map((todo) =>
+                    todo.id === todoId
+                        ? {
+                              id: todoId,
+                              ...todoInfo,
+                          }
+                        : todo
+                );
+                todoList.value = todoList.value.map((todo) =>
+                    todo.id === todoId
+                        ? {
+                              id: todoId,
+                              ...todoInfo,
+                          }
+                        : todo
+                );
+                title.value = "";
 
-                    console.log("update success");
-                })
-                .catch((error) => {
-                    console.log(error.message);
-                });
-        } catch (error) {
-            console.log(error);
-        }
+                toast.success("Cập nhật thành công", CRUD_TOAST_OPTIONS);
+                console.log("update success");
+            })
+            .catch((error) => {
+                console.log(error.message);
+                toast.error("Cập nhật thất bại", CRUD_TOAST_OPTIONS);
+            });
     };
 
     const toggleTodoStatus = async (todoId, completed) => {
@@ -168,37 +213,41 @@ export const useTodosStore = defineStore("todosStore", () => {
         }
         const modifiedEmail = user.email.replace(".", ",");
         const todosRef = refDB(db, `todos/${modifiedEmail}/${todoId}`);
-        try {
-            update(todosRef, {
-                ...todo,
-                completed,
+        update(todosRef, {
+            ...todo,
+            completed,
+        })
+            .then(() => {
+                // update local todos
+                visibleTodos.value = visibleTodos.value.map((todo) =>
+                    todo.id === todoId
+                        ? {
+                              ...todo,
+                              completed,
+                          }
+                        : todo
+                );
+                todoList.value = todoList.value.map((todo) =>
+                    todo.id === todoId
+                        ? {
+                              ...todo,
+                              completed,
+                          }
+                        : todo
+                );
+                if (completed) {
+                    toast.success(
+                        "Chúc mừng bạn hoàn thành!",
+                        CRUD_TOAST_OPTIONS
+                    );
+                } else {
+                    toast.info("Đánh dấu chưa hoàn thành", CRUD_TOAST_OPTIONS);
+                }
             })
-                .then(() => {
-                    // update local todos
-                    visibleTodos.value = visibleTodos.value.map((todo) =>
-                        todo.id === todoId
-                            ? {
-                                  ...todo,
-                                  completed,
-                              }
-                            : todo
-                    );
-                    todoList.value = todoList.value.map((todo) =>
-                        todo.id === todoId
-                            ? {
-                                  ...todo,
-                                  completed,
-                              }
-                            : todo
-                    );
-                    console.log("toggle success");
-                })
-                .catch((error) => {
-                    console.log(error.message);
-                });
-        } catch (error) {
-            console.log(error);
-        }
+            .catch((error) => {
+                console.log(error.message);
+                toast.error(error.message, CRUD_TOAST_OPTIONS);
+            });
     };
 
     const deleteTodo = (todoId) => {
@@ -215,8 +264,12 @@ export const useTodosStore = defineStore("todosStore", () => {
                     visibleTodos.value = visibleTodos.value.filter(
                         (todo) => todo.id !== todoId
                     );
+                    toast.success("Xóa thành công", CRUD_TOAST_OPTIONS);
                 })
-                .catch((error) => console.log(error.message));
+                .catch((error) => {
+                    console.log(error.message);
+                    toast.error("Xóa thất bại", CRUD_TOAST_OPTIONS);
+                });
         }
     };
 
@@ -304,15 +357,17 @@ export const useTodosStore = defineStore("todosStore", () => {
                         const data = snapshot.val();
                         isLoading.value = false;
                         let todos = [];
-                        for (const key of Object.keys(data)) {
-                            // update visibleTodo và todoList
-                            if (key !== "null") {
-                                todos.push(data[key]);
+                        if (data) {
+                            for (const key of Object.keys(data)) {
+                                // update visibleTodo và todoList
+                                if (key !== "null") {
+                                    todos.push(data[key]);
+                                }
                             }
+                            sortByDeadlineAscending(todos);
+                            visibleTodos.value = todos;
+                            todoList.value = todos;
                         }
-                        sortByDeadlineAscending(todos);
-                        visibleTodos.value = todos;
-                        todoList.value = todos;
                     });
                 } else {
                     isLoading.value = false;

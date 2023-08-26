@@ -63,14 +63,12 @@
 </template>
 
 <script setup>
-import { Form, Field, ErrorMessage } from "vee-validate";
-import * as yup from "yup";
-import { ref, onMounted } from "vue";
-import { auth } from "@/firebase/firebase.js";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { useRouter } from "vue-router";
 import { vAutofocus } from "@/directives/vAutofocus.js";
 import { useTodosStore } from "@/store/todosStore";
+import { ErrorMessage, Field, Form } from "vee-validate";
+import { onMounted } from "vue";
+import { useRouter } from "vue-router";
+import * as yup from "yup";
 
 /**
  * Store
@@ -78,7 +76,6 @@ import { useTodosStore } from "@/store/todosStore";
 
 const store = useTodosStore();
 const { signUp } = store;
-
 /**
  * Router
  */
@@ -95,11 +92,11 @@ const simpleSchema = yup.object({
         .required("Vui lòng nhập mật khẩu")
         .min(6, "Mật khẩu cần dài ít nhất 6 ký tự"),
 });
+// Toast
 
 const handleSignup = (value) => {
     const { email, password, userName } = value;
     signUp(userName, email, password);
-    router.push("/login");
 };
 
 onMounted(() => {
