@@ -185,10 +185,11 @@ const handlePressEsc = (e) => {
 onMounted(() => {
     document.addEventListener("keyup", handlePressEsc);
     if (props.todo) {
+        // console.log("🚀 ~ props.todo:", props.todo);
         const { deadline, priority, title, description } = props.todo;
-        // const formatedDate = convertDateToISOFormat(deadline);
+        const formatedDate = convertDateToISOFormat(deadline);
         selectedPriority.value = priority;
-        selectedDeadline.value = deadline;
+        selectedDeadline.value = formatedDate;
         editedTitle.value = title;
         editedDescription.value = description;
     }

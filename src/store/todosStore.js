@@ -107,6 +107,7 @@ export const useTodosStore = defineStore("todosStore", () => {
         if (!todo) {
             return;
         }
+        todoInfo.deadline = convertDateFormat(todoInfo.deadline);
         const modifiedEmail = user.email.replace(".", ",");
         const todosRef = refDB(db, `todos/${modifiedEmail}/${todoId}`);
         try {
