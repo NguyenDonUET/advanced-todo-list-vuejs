@@ -140,7 +140,7 @@ const schema = yup.object({
         })
         .typeError("error")
         .required("Vui lòng chọn ngày")
-        .min("2023-08-19", "Thời gian không hợp lệ"),
+        .min(new Date(), "Thời gian không hợp lệ"),
 });
 
 const radios = [

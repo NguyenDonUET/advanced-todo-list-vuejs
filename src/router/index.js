@@ -16,23 +16,34 @@ const router = createRouter({
             name: "Home",
             path: "/",
             component: HomeView,
+            beforeEnter() {
+                const token = localStorage.getItem("ACCESS_TOKEN");
+                if (!token) {
+                    router.push("/login");
+                }
+            },
         },
         {
             name: "Login",
             path: "/login",
             component: LoginView,
             beforeEnter() {
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        router.push("/");
-                    }
-                });
+                const token = localStorage.getItem("ACCESS_TOKEN");
+                if (token) {
+                    router.push("/");
+                }
             },
         },
         {
             name: "Register",
             path: "/register",
             component: SignupView,
+            beforeEnter() {
+                const token = localStorage.getItem("ACCESS_TOKEN");
+                if (token) {
+                    router.push("/");
+                }
+            },
         },
         {
             path: "/:catchall(.*)*",
@@ -41,5 +52,17 @@ const router = createRouter({
         },
     ],
 });
+
+function checkTokenAndRedirect() {
+    const token = localStorage.getItem("ACCESS_TOKEN");
+    if (token) {
+        router.push("/");
+    } else {
+        router.push("/login");
+    }
+}
+
+// Gọi hàm checkTokenAndRedirect()
+checkTokenAndRedirect();
 
 export default router;

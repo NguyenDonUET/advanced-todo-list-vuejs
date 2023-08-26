@@ -8,6 +8,7 @@ import { checkIsLoggedIn } from "../utils/checkIsLoggedIn";
 import {
     createUserWithEmailAndPassword,
     onAuthStateChanged,
+    signOut,
     updateProfile,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
@@ -40,6 +41,8 @@ export const useTodosStore = defineStore("todosStore", () => {
         user.displayName = userAuth.displayName;
         user.email = userAuth.email;
         isLoggedIn.value = true;
+        localStorage.setItem("ACCESS_TOKEN", userAuth.accessToken);
+        localStorage.setItem("USER", JSON.stringify(user));
     };
 
     const signUp = (userName, email, password) => {
@@ -65,22 +68,25 @@ export const useTodosStore = defineStore("todosStore", () => {
     };
 
     // Khi refresh lại trang nếu user đã login thì update state user
-    const initialUser = () => {
-        onAuthStateChanged(auth, (userInfo) => {
-            if (userInfo) {
-                isLoggedIn.value = true;
-                user.email = userInfo.email;
-                user.displayName = userInfo.displayName;
-                console.log("email", user.email);
-            } else {
-                console.log("chưa login");
-            }
-        });
+    const initialUser = (userInfo) => {
+        isLoggedIn.value = true;
+        user.email = userInfo.email;
+        user.displayName = userInfo.displayName;
+
+        console.log("email", user.email);
     };
 
+    const router = useRouter();
     const logout = () => {
         console.log("logout ~ store");
-        isLoggedIn.value = false;
+        signOut(auth)
+            .then(() => {
+                isLoggedIn.value = false;
+                localStorage.removeItem("ACCESS_TOKEN");
+                localStorage.removeItem("USER");
+                router.push("/login");
+            })
+            .catch((error) => console.log(error.message));
     };
 
     const createNewTodo = async (todo) => {

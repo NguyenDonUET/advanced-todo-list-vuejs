@@ -88,33 +88,25 @@ const router = useRouter();
 const showMobileNav = ref(false);
 
 const handleLogout = () => {
-    signOut(auth)
-        .then(() => {
-            logout();
-        })
-        .catch((error) => console.log(error.message));
+    logout();
 };
 
 // nếu đã login
 onMounted(() => {
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            initialUser(user);
-        } else {
-            router.push("/login");
-        }
-    });
+    const userLocal = JSON.parse(localStorage.getItem("USER"));
+    if (userLocal) {
+        initialUser(userLocal);
+    } else {
+        logout();
+    }
+    // onAuthStateChanged(auth, (user) => {
+    //     if (user) {
+    //         initialUser(user);
+    //     } else {
+    //         router.push("/login");
+    //     }
+    // });
 });
-
-// onMounted(() => {
-//     onAuthStateChanged(auth, (user) => {
-//         if (user) {
-//             isLoggedIn.value = true;
-//         } else {
-//             isLoggedIn.value = false;
-//         }
-//     });
-// });
 </script>
 
 <style scoped>
