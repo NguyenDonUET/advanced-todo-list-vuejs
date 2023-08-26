@@ -1,5 +1,5 @@
 import { db } from "@/firebase/firebase";
-import { set, ref as refDB, onValue, remove } from "firebase/database";
+import { set, ref as refDB, onValue, remove, update } from "firebase/database";
 import { collection, orderBy, query } from "firebase/firestore";
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
@@ -107,8 +107,33 @@ export const useTodosStore = defineStore("todosStore", () => {
         if (!todo) {
             return;
         }
+        const modifiedEmail = user.email.replace(".", ",");
+        const todosRef = refDB(db, `todos/${modifiedEmail}/${todoId}`);
         try {
-            console.log("update");
+            update(todosRef, todoInfo)
+                .then(() => {
+                    // update local todos
+                    visibleTodos.value = visibleTodos.value.map((todo) =>
+                        todo.id === todoId
+                            ? {
+                                  id: todoId,
+                                  ...todoInfo,
+                              }
+                            : todo
+                    );
+                    todoList.value = todoList.value.map((todo) =>
+                        todo.id === todoId
+                            ? {
+                                  id: todoId,
+                                  ...todoInfo,
+                              }
+                            : todo
+                    );
+                    console.log("update success");
+                })
+                .catch((error) => {
+                    console.log(error.message);
+                });
         } catch (error) {
             console.log(error);
         }
@@ -119,7 +144,36 @@ export const useTodosStore = defineStore("todosStore", () => {
         if (!todo) {
             return;
         }
+        const modifiedEmail = user.email.replace(".", ",");
+        const todosRef = refDB(db, `todos/${modifiedEmail}/${todoId}`);
         try {
+            update(todosRef, {
+                ...todo,
+                completed,
+            })
+                .then(() => {
+                    // update local todos
+                    visibleTodos.value = visibleTodos.value.map((todo) =>
+                        todo.id === todoId
+                            ? {
+                                  ...todo,
+                                  completed,
+                              }
+                            : todo
+                    );
+                    todoList.value = todoList.value.map((todo) =>
+                        todo.id === todoId
+                            ? {
+                                  ...todo,
+                                  completed,
+                              }
+                            : todo
+                    );
+                    console.log("toggle success");
+                })
+                .catch((error) => {
+                    console.log(error.message);
+                });
         } catch (error) {
             console.log(error);
         }

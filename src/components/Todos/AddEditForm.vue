@@ -186,9 +186,9 @@ onMounted(() => {
     document.addEventListener("keyup", handlePressEsc);
     if (props.todo) {
         const { deadline, priority, title, description } = props.todo;
-        const formatedDate = convertDateToISOFormat(deadline);
+        // const formatedDate = convertDateToISOFormat(deadline);
         selectedPriority.value = priority;
-        selectedDeadline.value = formatedDate;
+        selectedDeadline.value = deadline;
         editedTitle.value = title;
         editedDescription.value = description;
     }
