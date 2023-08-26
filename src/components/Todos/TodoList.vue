@@ -2,7 +2,7 @@
     <div class="wrapper my-5 px-2">
         <div
             class="empty-list-notification"
-            v-if="!isLoading && visibleTodos.length <= 0"
+            v-if="!isLoading && visibleTodos?.length <= 0"
         >
             <figure class="image">
                 <img src="/images/empty-list-img.png" />
@@ -13,7 +13,9 @@
             <TodoItem v-for="todo in visibleTodos" :key="todo.id" :todo="todo">
             </TodoItem>
         </div>
-        <h1 v-if="isLoading" class="is-size-2">Đang tải...</h1>
+        <Teleport to="#loading-container">
+            <Loading v-if="isLoading" />
+        </Teleport>
     </div>
 </template>
 
@@ -32,7 +34,7 @@ import { collection, getDocs, onSnapshot } from "firebase/firestore";
 const store = useTodosStore();
 const { visibleTodos } = storeToRefs(store);
 const { isLoading } = storeToRefs(store);
-const { getTodosFromDB } = store;
+const { getTodosFromDB, initialUser } = store;
 
 onMounted(() => {
     getTodosFromDB();

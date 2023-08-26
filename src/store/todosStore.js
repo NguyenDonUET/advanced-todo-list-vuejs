@@ -1,19 +1,27 @@
 import { db } from "@/firebase/firebase";
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    onSnapshot,
-    orderBy,
+    onValue,
     query,
-    updateDoc,
-    where,
-} from "firebase/firestore";
+    ref as refDB,
+    remove,
+    set,
+    update,
+} from "firebase/database";
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { convertDateFormat } from "../utils/convertDateFormat";
+import { sortByDeadlineAscending } from "../utils/sortByDeadlineAscending";
+
+import {
+    createUserWithEmailAndPassword,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signOut,
+    updateProfile,
+} from "firebase/auth";
+import { useRouter } from "vue-router";
+import { POSITION, useToast } from "vue-toastification";
+import { auth } from "../firebase/firebase";
 
 const todos = [
     {
@@ -27,6 +35,10 @@ const todos = [
     },
 ];
 
+const CRUD_TOAST_OPTIONS = {
+    position: POSITION.TOP_RIGHT,
+};
+
 export const useTodosStore = defineStore("todosStore", () => {
     const user = reactive({});
     const isLoggedIn = ref(false);
@@ -38,29 +50,98 @@ export const useTodosStore = defineStore("todosStore", () => {
     const title = ref("");
     const status = ref("");
 
-    const todosCollectionRef = collection(db, "todos");
-    const todosCollectionQuery = query(
-        todosCollectionRef,
-        orderBy("date", "desc")
-    );
+    const router = useRouter();
+    const toast = useToast();
 
     // khi đăng nhập xong update user
-    const login = (userAuth) => {
-        user.displayName = userAuth.displayName;
-        user.email = userAuth.email;
-        isLoggedIn.value = true;
+    const login = (email, password) => {
+        signInWithEmailAndPassword(auth, email, password)
+            .then((credential) => {
+                const userAuth = credential.user;
+                user.displayName = userAuth.displayName;
+                user.email = userAuth.email;
+                isLoggedIn.value = true;
+                localStorage.setItem("ACCESS_TOKEN", userAuth.accessToken);
+                localStorage.setItem("USER", JSON.stringify(user));
+
+                toast.success("Đăng nhập thành công");
+                router.push("/");
+            })
+            .catch((error) => {
+                switch (error.code) {
+                    case "auth/invalid-email":
+                        toast.error("Email không hợp lệ.");
+                        break;
+                    case "auth/user-not-found":
+                        toast.error("Email không tồn tại.");
+                        break;
+                    case "auth/wrong-password":
+                        toast.error("Mật khẩu không chính xác.");
+                        break;
+                    default:
+                        console.log(error.message);
+                        toast.error("Đã xảy ra lỗi. Vui lòng thử lại sau.");
+                }
+            });
     };
 
-    // Khi user đã login
+    const signUp = (userName, email, password) => {
+        createUserWithEmailAndPassword(auth, email, password)
+            .then(() => {
+                updateProfile(auth.currentUser, {
+                    displayName: userName,
+                }).then(() => {
+                    const user = auth.currentUser;
+                    // thêm account vào realtime
+                    const modifiedEmail = user.email.replace(".", ",");
+                    const todosRef = refDB(db, `todos/${modifiedEmail}/`);
+
+                    set(todosRef, { null: "" })
+                        .then(() => {
+                            toast.success("Đăng ký thành công", {
+                                position: POSITION.TOP_CENTER,
+                            });
+                            console.log("Signup success", user);
+                            router.push("/login");
+                        })
+                        .catch((error) => {
+                            toast.error("Update displayName bị lỗi");
+                            console.log(error);
+                        });
+                });
+            })
+            .catch((error) => {
+                if (error.code === "auth/email-already-in-use") {
+                    toast.error("Email này đã tồn tại");
+                } else {
+                    toast.error(error.code);
+                }
+                console.log(error);
+            });
+    };
+
+    // Khi refresh lại trang nếu user đã login thì update state user
     const initialUser = (userInfo) => {
         isLoggedIn.value = true;
-        user.displayName = userInfo.displayName;
         user.email = userInfo.email;
+        user.displayName = userInfo.displayName;
+
+        console.log("email", user.email);
     };
 
     const logout = () => {
         console.log("logout ~ store");
-        isLoggedIn.value = false;
+        signOut(auth)
+            .then(() => {
+                isLoggedIn.value = false;
+                localStorage.removeItem("ACCESS_TOKEN");
+                localStorage.removeItem("USER");
+                toast.success("Đăng xuất", {
+                    timeout: 1000,
+                });
+                router.push("/login");
+            })
+            .catch((error) => console.log(error.message));
     };
 
     const createNewTodo = async (todo) => {
@@ -70,13 +151,21 @@ export const useTodosStore = defineStore("todosStore", () => {
             deadline,
             completed: false,
             date: Date.now(),
+            id: crypto.randomUUID(),
         };
-        try {
-            const docRef = await addDoc(todosCollectionRef, newTodo);
-            console.log("thêm success", docRef.id);
-        } catch (error) {
-            console.log(error);
-        }
+        const modifiedEmail = user.email.replace(".", ",");
+        const todosRef = refDB(db, `todos/${modifiedEmail}/${newTodo.id}`);
+
+        set(todosRef, newTodo)
+            .then(() => {
+                console.log("add todo");
+                toast.success("Thêm thành công", CRUD_TOAST_OPTIONS);
+            })
+            .catch((error) => {
+                console.log(error.message);
+                toast.error("Thêm thất bại", CRUD_TOAST_OPTIONS);
+            });
+        title.value = "";
     };
 
     const updateTodo = async (todoId, todoInfo) => {
@@ -84,15 +173,37 @@ export const useTodosStore = defineStore("todosStore", () => {
         if (!todo) {
             return;
         }
-        try {
-            await updateDoc(doc(todosCollectionRef, todoId), {
-                ...todoInfo,
-                completed: todo.completed,
-                deadline: convertDateFormat(todoInfo.deadline),
+        todoInfo.deadline = convertDateFormat(todoInfo.deadline);
+        const modifiedEmail = user.email.replace(".", ",");
+        const todosRef = refDB(db, `todos/${modifiedEmail}/${todoId}`);
+        update(todosRef, todoInfo)
+            .then(() => {
+                // update local todos
+                visibleTodos.value = visibleTodos.value.map((todo) =>
+                    todo.id === todoId
+                        ? {
+                              id: todoId,
+                              ...todoInfo,
+                          }
+                        : todo
+                );
+                todoList.value = todoList.value.map((todo) =>
+                    todo.id === todoId
+                        ? {
+                              id: todoId,
+                              ...todoInfo,
+                          }
+                        : todo
+                );
+                title.value = "";
+
+                toast.success("Cập nhật thành công", CRUD_TOAST_OPTIONS);
+                console.log("update success");
+            })
+            .catch((error) => {
+                console.log(error.message);
+                toast.error("Cập nhật thất bại", CRUD_TOAST_OPTIONS);
             });
-        } catch (error) {
-            console.log(error);
-        }
     };
 
     const toggleTodoStatus = async (todoId, completed) => {
@@ -100,20 +211,65 @@ export const useTodosStore = defineStore("todosStore", () => {
         if (!todo) {
             return;
         }
-        try {
-            await updateDoc(doc(todosCollectionRef, todoId), {
-                ...todo,
-                completed,
+        const modifiedEmail = user.email.replace(".", ",");
+        const todosRef = refDB(db, `todos/${modifiedEmail}/${todoId}`);
+        update(todosRef, {
+            ...todo,
+            completed,
+        })
+            .then(() => {
+                // update local todos
+                visibleTodos.value = visibleTodos.value.map((todo) =>
+                    todo.id === todoId
+                        ? {
+                              ...todo,
+                              completed,
+                          }
+                        : todo
+                );
+                todoList.value = todoList.value.map((todo) =>
+                    todo.id === todoId
+                        ? {
+                              ...todo,
+                              completed,
+                          }
+                        : todo
+                );
+                if (completed) {
+                    toast.success(
+                        "Chúc mừng bạn hoàn thành!",
+                        CRUD_TOAST_OPTIONS
+                    );
+                } else {
+                    toast.info("Đánh dấu chưa hoàn thành", CRUD_TOAST_OPTIONS);
+                }
+            })
+            .catch((error) => {
+                console.log(error.message);
+                toast.error(error.message, CRUD_TOAST_OPTIONS);
             });
-        } catch (error) {
-            console.log(error);
-        }
     };
 
     const deleteTodo = (todoId) => {
         let index = todoList.value.findIndex((todo) => todo.id === todoId);
+        const modifiedEmail = user.email.replace(".", ",");
+        const todosRef = refDB(db, `todos/${modifiedEmail}/${todoId}`);
+
         if (index !== -1) {
-            deleteDoc(doc(todosCollectionRef, todoId));
+            // xóa trong db
+            remove(todosRef)
+                .then(() => {
+                    console.log("remove todo");
+                    // xóa trên UI
+                    visibleTodos.value = visibleTodos.value.filter(
+                        (todo) => todo.id !== todoId
+                    );
+                    toast.success("Xóa thành công", CRUD_TOAST_OPTIONS);
+                })
+                .catch((error) => {
+                    console.log(error.message);
+                    toast.error("Xóa thất bại", CRUD_TOAST_OPTIONS);
+                });
         }
     };
 
@@ -122,11 +278,11 @@ export const useTodosStore = defineStore("todosStore", () => {
             filterTodosByPriority();
             filterTodosByStatus();
             visibleTodos.value = visibleTodos.value.filter((todo) =>
-                todo.title.includes(title.value)
+                todo.title.toLowerCase().includes(title.value.toLowerCase())
             );
         } else {
             visibleTodos.value = todoList.value.filter((todo) =>
-                todo.title.includes(title.value)
+                todo.title.toLowerCase().includes(title.value.toLowerCase())
             );
         }
     };
@@ -137,14 +293,14 @@ export const useTodosStore = defineStore("todosStore", () => {
             visibleTodos.value = todoList.value.filter(
                 (todo) =>
                     todo.priority.includes(priority.value) &&
-                    todo.title.includes(title.value)
+                    todo.title.toLowerCase().includes(title.value.toLowerCase())
             );
         } else {
             visibleTodos.value = todoList.value.filter(
                 (todo) =>
                     todo.completed === JSON.parse(status.value) &&
                     todo.priority.includes(priority.value) &&
-                    todo.title.includes(title.value)
+                    todo.title.toLowerCase().includes(title.value.toLowerCase())
             );
         }
     };
@@ -157,7 +313,9 @@ export const useTodosStore = defineStore("todosStore", () => {
                 visibleTodos.value = todoList.value.filter(
                     (todo) =>
                         todo.completed === JSON.parse(status.value) &&
-                        todo.title.includes(title.value)
+                        todo.title
+                            .toLowerCase()
+                            .includes(title.value.toLowerCase())
                 );
         } else {
             console.log(status.value);
@@ -165,39 +323,63 @@ export const useTodosStore = defineStore("todosStore", () => {
                 visibleTodos.value = todoList.value.filter(
                     (todo) =>
                         todo.priority.includes(priority.value) &&
-                        todo.title.includes(title.value)
+                        todo.title
+                            .toLowerCase()
+                            .includes(title.value.toLowerCase())
                 );
             } else
                 visibleTodos.value = todoList.value.filter(
                     (todo) =>
                         todo.priority.includes(priority.value) &&
                         todo.completed === JSON.parse(status.value) &&
-                        todo.title.includes(title.value)
+                        todo.title
+                            .toLowerCase()
+                            .includes(title.value.toLowerCase())
                 );
         }
     };
 
-    function getTodosFromDB(query = todosCollectionQuery) {
+    const getTodosFromDB = () => {
         isLoading.value = true;
+        console.log("get data");
+
         try {
-            onSnapshot(query, (querySnapshot) => {
-                let todos = [];
-                querySnapshot.forEach((doc) => {
-                    todos.push({
-                        id: doc.id,
-                        ...doc.data(),
+            onAuthStateChanged(auth, (userInfo) => {
+                if (userInfo) {
+                    isLoggedIn.value = true;
+                    user.email = userInfo.email;
+                    user.displayName = userInfo.displayName;
+                    //     sau khi có user
+                    const modifiedEmail = user.email.replace(".", ",");
+
+                    const todosRef = query(refDB(db, `todos/${modifiedEmail}`));
+                    onValue(todosRef, (snapshot) => {
+                        const data = snapshot.val();
+                        isLoading.value = false;
+                        let todos = [];
+                        if (data) {
+                            for (const key of Object.keys(data)) {
+                                // update visibleTodo và todoList
+                                if (key !== "null") {
+                                    todos.push(data[key]);
+                                }
+                            }
+                            sortByDeadlineAscending(todos);
+                            visibleTodos.value = todos;
+                            todoList.value = todos;
+                        }
                     });
-                });
-                todoList.value = todos;
-                visibleTodos.value = todos;
-                isLoading.value = false;
+                } else {
+                    isLoading.value = false;
+                    console.log("user chưa login");
+                }
             });
         } catch (error) {
-            console.log(error);
+            console.log(error.message);
             isLoading.value = false;
             alert("Error getting todos from database", error.message);
         }
-    }
+    };
 
     return {
         visibleTodos,
@@ -218,5 +400,6 @@ export const useTodosStore = defineStore("todosStore", () => {
         priority,
         status,
         title,
+        signUp,
     };
 });

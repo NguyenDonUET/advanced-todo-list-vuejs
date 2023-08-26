@@ -94,6 +94,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import * as yup from "yup";
 import { Form, Field, ErrorMessage } from "vee-validate";
 import { convertDateToISOFormat } from "@/utils/convertDateFormat";
+import { getCurrentDate } from "@/utils/getCurrentDate";
 import { vAutofocus } from "@/directives/vAutofocus.js";
 
 const props = defineProps({
@@ -140,7 +141,7 @@ const schema = yup.object({
         })
         .typeError("error")
         .required("Vui lòng chọn ngày")
-        .min("2023-08-19", "Thời gian không hợp lệ"),
+        .min(getCurrentDate(), "Thời gian không hợp lệ"),
 });
 
 const radios = [
@@ -185,6 +186,7 @@ const handlePressEsc = (e) => {
 onMounted(() => {
     document.addEventListener("keyup", handlePressEsc);
     if (props.todo) {
+        // console.log("🚀 ~ props.todo:", props.todo);
         const { deadline, priority, title, description } = props.todo;
         const formatedDate = convertDateToISOFormat(deadline);
         selectedPriority.value = priority;
