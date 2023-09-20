@@ -59,6 +59,7 @@
                 </p>
             </div>
         </div>
+        <Footer />
     </main>
 </template>
 
@@ -68,6 +69,8 @@ import { useTodosStore } from "@/store/todosStore";
 import { ErrorMessage, Field, Form } from "vee-validate";
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
+import Footer from "@/components/Footer.vue";
+
 import * as yup from "yup";
 
 /**

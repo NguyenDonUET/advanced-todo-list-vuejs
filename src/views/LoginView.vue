@@ -48,6 +48,7 @@
                 </Form>
             </div>
         </div>
+        <Footer />
     </main>
 </template>
 
@@ -56,6 +57,7 @@ import { auth } from "@/firebase/firebase.js";
 import { useTodosStore } from "@/store/todosStore";
 import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { vAutofocus } from "@/directives/vAutofocus.js";
+import Footer from "@/components/Footer.vue";
 
 import { ErrorMessage, Field, Form } from "vee-validate";
 import { onMounted } from "vue";

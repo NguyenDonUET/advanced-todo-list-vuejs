@@ -3,6 +3,7 @@
         <Title />
         <TodoFunctions />
         <TodoList />
+        <Footer />
     </main>
 </template>
 
@@ -10,6 +11,7 @@
 import TodoList from "@/components/Todos/TodoList.vue";
 import TodoFunctions from "@/components/Todos/TodoFunctions.vue";
 import Title from "@/components/Title.vue";
+import Footer from "@/components/Footer.vue";
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { onAuthStateChanged } from "firebase/auth";
