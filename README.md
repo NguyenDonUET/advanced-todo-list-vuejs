@@ -1,29 +1,25 @@
-# Advanced todo list
+# Advanced Todo List
 
-This template should help get you started developing with Vue 3 in Vite.
+![demo](./public/images/advanced-todo-list-demo.png)
 
-## Recommended IDE Setup
+- Live Demo: https://advanced-todo-list-nguyendonuet.netlify.app/
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+#### Features
 
-## Customize configuration
+##### 1. **Login and Sign up**
 
-See [Vite Configuration Reference](https://vitejs.dev/config/).
+##### 2. **Create, Update, and Delete a todo**
 
-## Project Setup
+##### 3. **Search todos by todo title**
 
-```sh
-npm install
-```
+##### 4. **Filter todos by priority and status**
 
-### Compile and Hot-Reload for Development
+#### Technologies:
 
-```sh
-npm run dev
-```
+- Vuejs, Pinia, Bulma
+- Firebase
 
-### Compile and Minify for Production
+#### Setup and run project
 
-```sh
-npm run build
-```
+- `npm install`
+- `npm run dev`
